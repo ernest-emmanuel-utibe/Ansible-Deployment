@@ -1,37 +1,110 @@
+# name: Deploy to AWS EC2
+
+# on:
+#   push:
+#     branches:
+#       - master  # Triggers on push to main branch
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v2
+
+#     - name: Set up Python
+#       uses: actions/setup-python@v2
+#       with:
+#         python-version: '3.x'
+
+#     - name: Install Ansible
+#       run: |
+#         python -m pip install --upgrade pip
+#         pip install ansible boto3
+
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v1
+#       with:
+#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#         aws-region: eu-west-1
+
+#     - name: Run Ansible Playbook
+#       env:
+#         ANSIBLE_HOST_KEY_CHECKING: 'False'
+#       run: |
+#         ansible-playbook -i inventory.ini .github/ansible/deploy.yml
+
+
+
+
+
+
+
+
+
+
+
 name: Deploy to AWS EC2
 
 on:
   push:
     branches:
-      - master  # Triggers on push to main branch
+      - master  # Triggers on push to master branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      # Step 2: Set up Docker Buildx for building the Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Install Ansible
-      run: |
-        python -m pip install --upgrade pip
-        pip install ansible boto3
+      # Step 3: Set up Python environment for installing Ansible
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: eu-west-1
+      # Step 4: Install Ansible and AWS SDK (boto3) for EC2 interaction
+      - name: Install Ansible and AWS modules
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible boto3
 
-    - name: Run Ansible Playbook
-      env:
-        ANSIBLE_HOST_KEY_CHECKING: 'False'
-      run: |
-        ansible-playbook -i inventory.ini .github/ansible/deploy.yml
+      # Step 5: Build the Docker image from the Dockerfile
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} .
+          # Tagging the image with the commit SHA for uniqueness
+
+      # Step 6: Log in to Amazon ECR (Elastic Container Registry)
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Step 7: Tag the Docker image with the ECR URL and push to ECR
+      - name: Push Docker image to ECR
+        run: |
+          docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+
+      # Step 8: Configure AWS credentials for further interaction with AWS services
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      # Step 9: Run the Ansible Playbook to deploy the Docker container on EC2 instance
+      - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: 'False'
+        run: |
+          ansible-playbook -i inventory.ini .github/ansible/deploy.yml

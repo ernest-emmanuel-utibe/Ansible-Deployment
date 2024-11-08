@@ -87,7 +87,7 @@
   tasks:
     - name: Install Amazon Corretto 17
       amazon.aws.aws_ec2_instance_facts:
-        instance_ids: "{{ instance_ids }}"
+        instance_ids: i-01b12e48bed608599
       yum:
         name: java-17-amazon-corretto
         state: present
