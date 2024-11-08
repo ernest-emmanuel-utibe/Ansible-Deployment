@@ -86,15 +86,16 @@ jobs:
           # Check if the repository exists
           aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPOSITORY }} || \
           # Create repository if it doesn't exist
-          aws ecr create-repository --repository-name ${{ secrets.ECR_REPOSITORY }}
+          # aws ecr create-repository --repository-name ${{ secrets.ECR_REPOSITORY }}
 
       # Step 11: Tag and push Docker image to ECR
       - name: Build, tag, and push image to Amazon ECR
         run: |
           # Tagging the local image with the ECR repository name
-          docker tag your-image-name:${GITHUB_SHA} $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${GITHUB_SHA}
-          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${GITHUB_SHA}
-          echo "image=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          docker tag app:8f9b32c6539f73d193f5df0d191acf957c991cd8 357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8
+          docker push 357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8
+          echo "image=357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8" >> $GITHUB_OUTPUT
+
 
 
       # Step 12: Run the Ansible Playbook to deploy the Docker container on EC2 instance
