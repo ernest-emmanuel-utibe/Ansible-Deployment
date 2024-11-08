@@ -6,15 +6,14 @@ on:
       - master  # Triggers on push to master branch
       
 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Java (for Maven or Gradle build)
       - uses: actions/setup-java@v3
         name: Set up JDK 17
         with:
@@ -22,33 +21,23 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Step 3: Build the application using Maven (or Gradle)
       - name: Build the application (Maven)
         run: |
           mvn -B clean package -DskipTests
 
-      # Step 4: Set up Docker Buildx for building the Docker image
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 5: Set up Python environment for installing Ansible
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Step 6: Install Ansible and AWS modules
       - name: Install Ansible and AWS modules
         run: |
           python -m pip install --upgrade pip
           pip install ansible boto3
 
-      # Step 7: Build Docker image from the Dockerfile
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} .
-
-      # Step 8: Configure AWS credentials for interaction with AWS services (ECR)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -56,34 +45,168 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Step 9: Log in to Amazon ECR
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      # Step 10: Define ECR Registry and tag the Docker image
-      - name: Set ECR_REGISTRY and ECR_REPOSITORY
+      # Step to create the ECR repository if it doesn't exist
+      - name: Create ECR repository if it does not exist
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REPOSITORY: ansible-playbook  # Replace with your ECR repository name
+        run: |
+          aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" || \
+          aws ecr create-repository --repository-name "$ECR_REPOSITORY"
+
+      - name: Set ECR_REGISTRY and IMAGE_TAG
         run: |
           echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
-          echo "ECR_REPOSITORY=ansible_test" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      # Step 11: Tag and push Docker image to ECR
       - name: Build, tag, and push image to Amazon ECR
-        id: build-image
         env:
           ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          ECR_REPOSITORY: ansible-playbook  # Replace with your ECR repository name
         run: |
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # Step 12: Run the Ansible Playbook to deploy the Docker container on EC2 instance
       - name: Run Ansible Playbook
         env:
           ANSIBLE_HOST_KEY_CHECKING: 'False'
         run: |
           ansible-playbook -i inventory.ini .github/ansible/deploy.yml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # Step 1: Checkout the code
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # Step 2: Set up Java (for Maven or Gradle build)
+#       - uses: actions/setup-java@v3
+#         name: Set up JDK 17
+#         with:
+#           java-version: '17'
+#           distribution: 'temurin'
+#           cache: maven
+
+#       # Step 3: Build the application using Maven (or Gradle)
+#       - name: Build the application (Maven)
+#         run: |
+#           mvn -B clean package -DskipTests
+
+#       # Step 4: Set up Docker Buildx for building the Docker image
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v2
+
+#       # Step 5: Set up Python environment for installing Ansible
+#       - name: Set up Python
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: '3.x'
+
+#       # Step 6: Install Ansible and AWS modules
+#       - name: Install Ansible and AWS modules
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install ansible boto3
+
+#       # Step 7: Build Docker image from the Dockerfile
+#       - name: Build Docker image
+#         run: |
+#           docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} .
+
+#       # Step 8: Configure AWS credentials for interaction with AWS services (ECR)
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ secrets.AWS_REGION }}
+
+#       # Step 9: Log in to Amazon ECR
+#       - name: Log in to Amazon ECR
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v1
+
+#       # Step 10: Define ECR Registry and tag the Docker image
+#       - name: Set ECR_REGISTRY and ECR_REPOSITORY
+#         run: |
+#           echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
+#           echo "ECR_REPOSITORY=ansible_test" >> $GITHUB_ENV
+#           echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+#       # Step 11: Tag and push Docker image to ECR
+#       - name: Build, tag, and push image to Amazon ECR
+#         id: build-image
+#         env:
+#           ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+#           IMAGE_TAG: ${{ github.sha }}
+#           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+#         run: |
+#           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+#       # Step 12: Run the Ansible Playbook to deploy the Docker container on EC2 instance
+#       - name: Run Ansible Playbook
+#         env:
+#           ANSIBLE_HOST_KEY_CHECKING: 'False'
+#         run: |
+#           ansible-playbook -i inventory.ini .github/ansible/deploy.yml
 
