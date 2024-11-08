@@ -65,11 +65,28 @@ jobs:
         with:
           registry-type: private  # Optional, if using a private registry
 
-      # Step 10: Define ECR Registry and tag the Docker image
-      - name: Set ECR_REGISTRY and Tag Image
+      # # Step 10: Define ECR Registry and tag the Docker image
+      # - name: Set ECR_REGISTRY and Tag Image
+      #   run: |
+      #     echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
+      #     echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+      # # Step 11: Tag and push Docker image to ECR
+      # - name: Build, tag, and push image to Amazon ECR
+      #   run: |
+      #     # Tagging the local image with the ECR repository name
+      #     docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+      #     docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+      #     echo "image=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+
+      # Step 10: Create ECR repository if it does not exist
+      - name: Create ECR Repository if it does not exist
         run: |
-          echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+          # Check if the repository exists
+          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPOSITORY }} || \
+          # Create repository if it doesn't exist
+          aws ecr create-repository --repository-name ${{ secrets.ECR_REPOSITORY }}
 
       # Step 11: Tag and push Docker image to ECR
       - name: Build, tag, and push image to Amazon ECR
