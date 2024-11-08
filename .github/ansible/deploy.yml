@@ -1,104 +1,51 @@
-# ---
-# - name: Configure Spring Boot Application
-#   hosts: all  # Run on both local and EC2 servers
-#   become: yes  # Run as root to install dependencies
-#   vars:
-#     spring_boot_version: "3.0.0"  # Spring Boot version
-#     java_version: "17"  # Java version
-
-#   tasks:
-#     # Install Amazon Corretto 17 on Amazon Linux
-#     - name: Install Amazon Corretto 17 for Amazon Linux
-#       yum:
-#         name: java-17-amazon-corretto
-#         state: present
-#       when: ansible_facts['os_family'] == "RedHat"
-
-#     # Install OpenJDK for Debian-based systems
-#     - name: Install OpenJDK for Debian-based systems
-#       apt:
-#         name: openjdk-17-jdk
-#         state: present
-#       when: ansible_facts['os_family'] == "Debian"
-
-#     # Create a directory for the Spring Boot app
-#     - name: Create application directory
-#       file:
-#         path: /opt/demo-app
-#         state: directory
-#         mode: '0755'
-
-#     # Copy the JAR file to the remote server
-#     - name: Copy JAR file
-#       copy:
-#         src: /home/ernest/Downloads/demo/target/demo-0.0.1-SNAPSHOT.jar  # Replace with your JAR file
-#         dest: /opt/demo-app/demo-0.0.1-SNAPSHOT.jar
-#         mode: '0755'
-
-#     # Copy application.properties (if available)
-#     - name: Copy application.properties (if available)
-#       template:
-#         src: application.properties.j2  # Local template file
-#         dest: /opt/demo-app/application.properties
-#         mode: '0644'
-#       ignore_errors: yes  # Ignore errors if no application.properties file is present
-
-#     # Create a systemd service to run Spring Boot app
-#     - name: Create a systemd service for Spring Boot
-#       copy:
-#         dest: /etc/systemd/system/demo-app.service
-#         content: |
-#           [Unit]
-#           Description=Spring Boot Application
-#           After=syslog.target
-
-#           [Service]
-#           User=ec2-user
-#           ExecStart=/usr/bin/java -jar /opt/demo-app/demo-0.0.1-SNAPSHOT.jar
-#           Restart=always
-
-#           [Install]
-#           WantedBy=multi-user.target
-#       notify:
-#         - Reload systemd
-
-#     # Enable and start the Spring Boot service
-#     - name: Enable and start the Spring Boot application
-#       systemd:
-#         name: demo-app
-#         state: started
-#         enabled: yes
-
-#   handlers:
-#     # Reload systemd to apply the new service
-#     - name: Reload systemd
-#       systemd:
-#         daemon_reload: yes
-
-
-
-
-
-
-
-- hosts: servers
-  become: true
+---
+- name: Configure and Deploy Spring Boot Application
+  hosts: all
+  become: yes  # Run tasks with root privileges
+  vars:
+    spring_boot_version: "3.0.0"  # Spring Boot version
+    java_version: "17"  # Java version
 
   tasks:
-    - name: Install Amazon Corretto 17
-      amazon.aws.aws_ec2_instance_facts:
-        instance_ids: i-01b12e48bed608599
+    # Install Amazon Corretto 17 on Amazon Linux (RedHat family)
+    - name: Install Amazon Corretto 17 on RedHat-based systems
       yum:
         name: java-17-amazon-corretto
         state: present
+      when: ansible_facts['os_family'] == "RedHat"
 
-    - name: Copy application JAR to EC2 instance
+    # Install OpenJDK 17 on Debian-based systems
+    - name: Install OpenJDK 17 on Debian-based systems
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == "Debian"
+
+    # Create a directory for the Spring Boot application
+    - name: Create application directory
+      file:
+        path: /opt/demo-app
+        state: directory
+        mode: '0755'
+
+    # Copy the application JAR to the server
+    - name: Copy application JAR to server
       copy:
-        src: target/demo-0.0.1-SNAPSHOT.jar
+        src: /home/ernest/Downloads/demo/target/demo-0.0.1-SNAPSHOT.jar  # Update with the path to your JAR file
         dest: /opt/demo-app/demo-0.0.1-SNAPSHOT.jar
         mode: '0755'
 
-    - name: Set up systemd service
+    # Optionally, copy application.properties if available
+    - name: Copy application.properties configuration (if available)
+      template:
+        src: application.properties.j2  # Path to the Jinja2 template on your local machine
+        dest: /opt/demo-app/application.properties
+        mode: '0644'
+      ignore_errors: yes  # Continue if the file is missing
+
+    # Create a systemd service to manage the Spring Boot application
+    - name: Create systemd service for Spring Boot application
       copy:
         dest: /etc/systemd/system/demo-app.service
         content: |
@@ -113,9 +60,18 @@
 
           [Install]
           WantedBy=multi-user.target
+      notify:
+        - Reload systemd
 
-    - name: Start the application service
+    # Enable and start the Spring Boot service
+    - name: Enable and start the Spring Boot application
       systemd:
         name: demo-app
         state: started
         enabled: yes
+
+  handlers:
+    # Reload systemd to recognize the new service
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
