@@ -101,6 +101,8 @@ jobs:
       # Step 8: Log in to Amazon ECR (Elastic Container Registry)
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          region: ${{ secrets.AWS_REGION }}
 
       # Step 9: Tag the Docker image with the ECR URL and push to ECR
       - name: Push Docker image to ECR
