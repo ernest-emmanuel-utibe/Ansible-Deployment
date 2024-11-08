@@ -74,7 +74,8 @@ jobs:
       # Step 11: Tag and push Docker image to ECR
       - name: Build, tag, and push image to Amazon ECR
         run: |
-          docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+          # Tagging the local image with the ECR repository name
+          docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           echo "image=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
