@@ -65,7 +65,7 @@ jobs:
       - name: Set ECR_REGISTRY and ECR_REPOSITORY
         run: |
           echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
-          echo "ECR_REPOSITORY=demo-app" >> $GITHUB_ENV
+          echo "ECR_REPOSITORY=ansible_test" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
       # Step 11: Tag and push Docker image to ECR
