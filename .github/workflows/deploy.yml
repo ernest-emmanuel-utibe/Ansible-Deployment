@@ -65,36 +65,19 @@ jobs:
         with:
           registry-type: private  # Optional, if using a private registry
 
-      # # Step 10: Define ECR Registry and tag the Docker image
-      # - name: Set ECR_REGISTRY and Tag Image
-      #   run: |
-      #     echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
-      #     echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
-
-      # # Step 11: Tag and push Docker image to ECR
-      # - name: Build, tag, and push image to Amazon ECR
-      #   run: |
-      #     # Tagging the local image with the ECR repository name
-      #     docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
-      #     docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
-      #     echo "image=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
-
-
-      # Step 10: Create ECR repository if it does not exist
-      - name: Create ECR Repository if it does not exist
+      # Step 10: Define ECR Registry and tag the Docker image
+      - name: Set ECR_REGISTRY and Tag Image
         run: |
-          # Check if the repository exists
-          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPOSITORY }} || \
-          # Create repository if it doesn't exist
-          # aws ecr create-repository --repository-name ${{ secrets.ECR_REPOSITORY }}
+          echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
       # Step 11: Tag and push Docker image to ECR
       - name: Build, tag, and push image to Amazon ECR
         run: |
           # Tagging the local image with the ECR repository name
-          docker tag app:8f9b32c6539f73d193f5df0d191acf957c991cd8 357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8
-          docker push 357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8
-          echo "image=357586184453.dkr.ecr.eu-west-1.amazonaws.com/ansible-test:8f9b32c6539f73d193f5df0d191acf957c991cd8" >> $GITHUB_OUTPUT
+          docker tag ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/
+          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+          echo "image=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
 
 
