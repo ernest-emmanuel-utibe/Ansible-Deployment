@@ -34,4 +34,4 @@ jobs:
       env:
         ANSIBLE_HOST_KEY_CHECKING: 'False'
       run: |
-        ansible-playbook -i inventory.ini deploy.yml
+        ansible-playbook -i inventory.ini .github/ansible/deploy.yml
