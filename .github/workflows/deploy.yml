@@ -3,7 +3,7 @@ name: Deploy to AWS EC2
 on:
   push:
     branches:
-      - main  # Triggers on push to main branch
+      - master  # Triggers on push to main branch
 
 jobs:
   deploy:
@@ -28,7 +28,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: your-region
+        aws-region: eu-west-1
 
     - name: Run Ansible Playbook
       env:
