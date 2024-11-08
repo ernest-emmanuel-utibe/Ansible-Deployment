@@ -1,0 +1,76 @@
+---
+- name: Configure Spring Boot Application
+  hosts: all  # Run on both local and EC2 servers
+  become: yes  # Run as root to install dependencies
+  vars:
+    spring_boot_version: "3.0.0"  # Spring Boot version
+    java_version: "17"  # Java version
+
+  tasks:
+    # Install Amazon Corretto 17 on Amazon Linux
+    - name: Install Amazon Corretto 17 for Amazon Linux
+      yum:
+        name: java-17-amazon-corretto
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    # Install OpenJDK for Debian-based systems
+    - name: Install OpenJDK for Debian-based systems
+      apt:
+        name: openjdk-17-jdk
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    # Create a directory for the Spring Boot app
+    - name: Create application directory
+      file:
+        path: /opt/demo-app
+        state: directory
+        mode: '0755'
+
+    # Copy the JAR file to the remote server
+    - name: Copy JAR file
+      copy:
+        src: /home/ernest/Downloads/demo/target/demo-0.0.1-SNAPSHOT.jar  # Replace with your JAR file
+        dest: /opt/demo-app/demo-0.0.1-SNAPSHOT.jar
+        mode: '0755'
+
+    # Copy application.properties (if available)
+    - name: Copy application.properties (if available)
+      template:
+        src: application.properties.j2  # Local template file
+        dest: /opt/demo-app/application.properties
+        mode: '0644'
+      ignore_errors: yes  # Ignore errors if no application.properties file is present
+
+    # Create a systemd service to run Spring Boot app
+    - name: Create a systemd service for Spring Boot
+      copy:
+        dest: /etc/systemd/system/demo-app.service
+        content: |
+          [Unit]
+          Description=Spring Boot Application
+          After=syslog.target
+
+          [Service]
+          User=ec2-user
+          ExecStart=/usr/bin/java -jar /opt/demo-app/demo-0.0.1-SNAPSHOT.jar
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      notify:
+        - Reload systemd
+
+    # Enable and start the Spring Boot service
+    - name: Enable and start the Spring Boot application
+      systemd:
+        name: demo-app
+        state: started
+        enabled: yes
+
+  handlers:
+    # Reload systemd to apply the new service
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
